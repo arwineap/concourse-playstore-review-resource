@@ -49,5 +49,6 @@ json_result["metadata"].push({"name" => "score", "value" => review[:score]})
 json_result["metadata"].push({"name" => "title", "value" => review[:title]})
 json_result["metadata"].push({"name" => "text", "value" => review[:text]})
 
+STDERR.puts json_result.to_json
 puts json_result.to_json
 
