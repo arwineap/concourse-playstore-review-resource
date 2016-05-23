@@ -14,7 +14,6 @@ inp += $stdin.read
 payload = JSON.parse(inp.to_s)
 dest_dir = ARGV[0]
 review = nil
-result = Array.new
 
 app = MarketBot::Play::App.new(payload['source']['app_name'])
 app.update
@@ -24,7 +23,6 @@ sha256 = Digest::SHA256.new
 app.reviews.each do |x|
     ref = "#{x[:author]} - #{x[:score]} - #{sha256.hexdigest(x[:author]+x[:score].to_s+x[:title]+x[:text])}"
     if ref == payload['version']['ref']
-        result.push({"ref": ref})
         review = x
         break
     end
@@ -44,7 +42,7 @@ end
 
 # setup and configure metadata
 json_result = Hash.new
-json_result["version"] = result.first
+json_result["version"] = {"ref": payload['version']['ref']}
 json_result["metadata"] = Array.new
 json_result["metadata"].push({"name" => "author", "value" => review[:author]})
 json_result["metadata"].push({"name" => "score", "value" => review[:score]})
