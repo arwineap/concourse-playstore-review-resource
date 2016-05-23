@@ -1,0 +1,34 @@
+#!/usr/local/bin/ruby
+
+require 'digest'
+require 'json'
+
+require 'bundler/setup'
+Bundler.setup()
+require 'market_bot'
+
+inp = ''
+inp += $stdin.read
+payload = JSON.parse(inp.to_s)
+result = Array.new 
+
+app = MarketBot::Play::App.new(payload['source']['app_name'])
+app.update
+
+sha256 = Digest::SHA256.new
+
+if payload['version'].eql? nil
+    ref = "#{app.reviews.first[:author]} - #{app.reviews.first[:score]} - #{sha256.hexdigest(app.reviews.first[:author]+app.reviews.first[:score].to_s+app.reviews.first[:title]+app.reviews.first[:text])}"
+    result.push({"ref": ref})
+else
+    app.reviews.each do |x|
+        ref = "#{x[:author]} - #{x[:score]} - #{sha256.hexdigest(x[:author]+x[:score].to_s+x[:title]+x[:text])}"
+        if ref == payload['version']['ref']
+            break
+        end
+        result.push({"ref": ref})
+    end
+end
+
+puts result.to_json
+

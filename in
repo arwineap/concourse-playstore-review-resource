@@ -1,0 +1,53 @@
+#!/usr/local/bin/ruby
+
+require 'digest'
+require 'json'
+require 'erb'
+
+require 'bundler/setup'
+Bundler.setup()
+require 'market_bot'
+
+inp = ''
+inp += $stdin.read
+
+payload = JSON.parse(inp.to_s)
+dest_dir = ARGV[0]
+review = nil
+
+app = MarketBot::Play::App.new(payload['source']['app_name'])
+app.update
+
+sha256 = Digest::SHA256.new
+
+app.reviews.each do |x|
+    ref = "#{x[:author]} - #{x[:score]} - #{sha256.hexdigest(x[:author]+x[:score].to_s+x[:title]+x[:text])}"
+    if ref == payload['version']['ref']
+        review = x
+        break
+    end
+end
+
+# write the json review file
+File.open("#{dest_dir}/review.json", "w") do |f|
+    f.write(review.to_json)
+end
+
+# write a slack message for slack resource
+File.open("#{dest_dir}/slack.msg", "w") do |f|
+    template = ERB.new(File.read("/opt/resource/slack.erb"))
+    f.write template.result()
+end
+
+
+# setup and configure metadata
+json_result = Hash.new
+json_result["version"] = result.first
+json_result["metadata"] = Array.new
+json_result["metadata"].push({"name" => "author", "value" => review[:author]})
+json_result["metadata"].push({"name" => "score", "value" => review[:score]})
+json_result["metadata"].push({"name" => "title", "value" => review[:title]})
+json_result["metadata"].push({"name" => "text", "value" => review[:text]})
+
+puts json_result.to_json
+
