@@ -42,13 +42,12 @@ end
 
 # setup and configure metadata
 json_result = Hash.new
-json_result["version"] = {"ref": "#{payload['version']['ref']}"}
+json_result["version"] = {"ref": payload['version']['ref']}
 json_result["metadata"] = Array.new
 json_result["metadata"].push({"name" => "author", "value" => review[:author]})
-json_result["metadata"].push({"name" => "score", "value" => review[:score]})
+json_result["metadata"].push({"name" => "score", "value" => review[:score].to_s})
 json_result["metadata"].push({"name" => "title", "value" => review[:title]})
 json_result["metadata"].push({"name" => "text", "value" => review[:text]})
 
-STDERR.puts json_result.to_json
 puts json_result.to_json
 
