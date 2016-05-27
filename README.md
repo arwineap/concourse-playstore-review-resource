@@ -1,6 +1,6 @@
 # Concourse play store review resource
 
-Checks for new app store reviews in the google play store using [market_bot](https://github.com/chadrem/market_bot/)
+Checks for new app store reviews in the google play store
 
 
 ## Resource Configuration
