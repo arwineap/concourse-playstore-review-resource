@@ -3,10 +3,7 @@
 require 'digest'
 require 'json'
 require 'erb'
-
-require 'bundler/setup'
-Bundler.setup()
-require 'market_bot'
+require 'nokogiri'
 
 inp = ''
 inp += $stdin.read
@@ -15,12 +12,52 @@ payload = JSON.parse(inp.to_s)
 dest_dir = ARGV[0]
 review = nil
 
-app = MarketBot::Play::App.new(payload['source']['app_name'])
-app.update
+def get_reviews(app_name)
+    uri = URI('https://play.google.com/store/getreviews?authuser=0')
+    res = Net::HTTP.post_form(uri, 'reviewType' => '0', 'pageNum' => '0', 'id' => app_name, 'reviewSortOrder' => '0', 'xhr' => '1')
+
+    response = res.body[6..-1]
+
+    reviews = Array.new
+
+    doc = Nokogiri::HTML(JSON.parse(response)[0][2])
+
+    doc.css('.single-review').each do |node|
+        review = {}
+        review[:author] = node.at_css('.author-name').text.strip if node.at_css('.author-name')
+        raw_tag = node.at_css('.current-rating').to_s
+        if raw_tag.match(/100%;/i)
+          review[:score] = 5
+        elsif raw_tag.match(/80%;/i)
+          review[:score] = 4
+        elsif raw_tag.match(/60%;/i)
+          review[:score] = 3
+        elsif raw_tag.match(/40%;/i)
+          review[:score] = 2
+        elsif raw_tag.match(/20%;/i)
+          review[:score] = 1
+        end
+        if node.at_css('.review-title')
+          review[:title] = node.at_css('.review-title').text.strip
+        end
+        if node.at_css('.review-body')
+          review[:text] = node.at_css('.review-body').text
+            .sub!(review[:title],'')
+            .sub!(node.at_css('.review-link').text, '')
+            .strip
+        end
+        if review
+          reviews << review
+        end
+    end
+    return reviews
+end
+
+reviews = get_reviews(payload['source']['app_name'])
 
 sha256 = Digest::SHA256.new
 
-app.reviews.each do |x|
+reviews.each do |x|
     ref = "#{x[:author]} - #{x[:score]} - #{sha256.hexdigest(x[:author]+x[:score].to_s+x[:title]+x[:text])}"
     if ref == payload['version']['ref']
         review = x
@@ -50,4 +87,3 @@ json_result["metadata"].push({"name" => "title", "value" => review[:title]})
 json_result["metadata"].push({"name" => "text", "value" => review[:text]})
 
 puts json_result.to_json
-
