@@ -4,6 +4,7 @@ require 'digest'
 require 'json'
 require 'erb'
 require 'nokogiri'
+require 'net/http'
 
 inp = ''
 inp += $stdin.read
